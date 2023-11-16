@@ -1,323 +1,297 @@
-#   https://www.youtube.com/watch?v=w_l9YINjK2I
+# pip install pygame os-sys
 
-#   pip install pygame os-sys
+# imports
 
 import pygame
 import os
 
-#   Iniciamos los módulos y mixer para dibujar textos en pantalla e introducir sonidos.
+# Iniciar módulos y mixer para dibujar textos en pantalla e introducir sonidos.
 
 pygame.font.init()
 pygame.mixer.init()
 
-#   CONSTANTES
+# Constantes.
 
-#   Tamaño de la ventana principal (display.set_mode), título (display.set_caption).
+# Tamaño de la ventana principal.
 
-ANCHO, ALTO = 900, 500   
-VENTANA = pygame.display.set_mode((ANCHO, ALTO))
+WIDTH, HEIGHT = 900, 500   
+WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
+
+# Título.
+
 pygame.display.set_caption("SpaceWar!")
 
-#   Colores.
+# Colores.
 
-BLANCO = (255, 255 , 255)
-NEGRO = (0, 0, 0)
-ROJO  = (255, 0, 0)
-AMARILLO = (255, 255, 0)
+WHITE = (255, 255 , 255)
+BLACK = (0, 0, 0)
+RED  = (255, 0, 0)
+YELLOW = (255, 255, 0)
 
-#   Borde central (rect)
+# Borde central.
 
-BORDE_CENTRO = pygame.Rect(ANCHO/2 - 5, 0, 10, ALTO)
+BORDER_CENTER = pygame.Rect(WIDTH/2 - 5, 0, 10, HEIGHT)
 
-#   Sonidos (mixer).
+# Sonidos.
 
-SONIDO_COLISION = pygame.mixer.Sound('assets/Grenade+1.wav')
-SONIDO_DISPARO = pygame.mixer.Sound('assets/Shot.wav')
+COLLISION_SOUND = pygame.mixer.Sound('assets/collision.wav')
+SHOOTING_SOUND = pygame.mixer.Sound('assets/shot.wav')
 
-#   Texto para las vidas y mostrar ganador.
+# Texto para las vidas y mostrar ganador.
 
-FUENTE_VIDAS = pygame.font.SysFont('comicsans', 20)
-FUENTE_GANADOR = pygame.font.SysFont('comicsans', 20)
+FONT_LIVE = pygame.font.SysFont('comicsans', 20)
+FONT_WINNER = pygame.font.SysFont('comicsans', 20)
 
-#   Fotogramas por segundo.
+# Fotogramas por segundo y velocidad de movimiento. Cada vez que un usuario pulse una tecla, la nave se moverá 5 px.
 
 FPS = 60
+SPEED = 5
 
-#   Velocidad de movimiento. Cada vez que un usuario pulse una tecla, la nave se moverá 5 px.
+# Número de balas que puede disparar una nave a la vez y velocidad.
 
-VELOCIDAD = 5
+MAX_BULLETS = 3
+SPEED_BULLETS = 7
 
-#   Número de balas que puede disparar una nave a la vez y velocidad.
+# Eventos para cuando una de las naves colisiona con una bala.
 
-MAX_BALAS = 3
-VELOCIDAD_BALAS = 7
+YELLOW_SHIP_COLLISION = pygame.USEREVENT + 1
+RED_SHIP_COLLISION = pygame.USEREVENT + 2
 
-#   Tamaño de las naves.
+# Rutas a las imágenes, dimensiones y rotación de las naves.
 
-NAVE_ANCHO, NAVE_ALTO = 90, 70
+YELLOW_SHIP_IMG = pygame.image.load(os.path.join('assets', 'yellow-ship.png'))
+RED_SHIP_IMG = pygame.image.load(os.path.join('assets', 'red-ship.png'))
 
-#   Eventos propios (pygame.userevent) para cuando una de las naves colisiona con una bala.
+SHIP_WIDTH, SHIP_HEIGHT = 90, 70
 
-CHOQUE_NAVE_AMARILLA = pygame.USEREVENT + 1
-CHOQUE_NAVE_ROJA = pygame.USEREVENT + 2
+YELLOW_SHIP = pygame.transform.rotate(pygame.transform.scale(YELLOW_SHIP_IMG, (SHIP_WIDTH, SHIP_HEIGHT)), 90)
+RED_SHIP = pygame.transform.rotate(pygame.transform.scale(RED_SHIP_IMG, (SHIP_WIDTH, SHIP_HEIGHT)), 270)
 
-#   Rutas a las imágenes, dimensiones y rotación de las naves (pygame.transform.rotate(pygame.transform.scale)).
-
-IMAGEN_NAVE_AMARILLA = pygame.image.load(os.path.join('assets', 'spaceship_yellow.png'))
-
-NAVE_AMARILLA = pygame.transform.rotate(pygame.transform.scale(IMAGEN_NAVE_AMARILLA, (NAVE_ANCHO, NAVE_ALTO)), 90)
-
-IMAGEN_NAVE_ROJA = pygame.image.load(os.path.join('assets', 'spaceship_red.png'))
-
-NAVE_ROJA = pygame.transform.rotate(pygame.transform.scale(IMAGEN_NAVE_ROJA, (NAVE_ANCHO, NAVE_ALTO)), 270)
-
-ESPACIO = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'space.png')), (ANCHO, ALTO))
+SPACE = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'background.png')), (WIDTH, HEIGHT))
 
 
-#   Función para dibujar cosas en pantalla con las funciones blit y draw.rect para el borde central. Actualizamos con la función display.update.
+# Función para mostrar la ventana de juego.
 
-    #   Parámetros en blit: qué queremos mostrar y en qué posición.
-    #   Parámetros en draw.rect: en qué pantalla queremos dibujar, el color y qué rectángulo queremos dibujar.
+def showWindow(redRectangle, yellowRectangle, redBullets, yellowBullets, redShipLive, yellowShipLive):
 
-def dibujar_ventana(rectangulo_rojo, rectangulo_amarillo, balas_rojas, balas_amarillas, vidas_nave_roja, vidas_nave_amarilla):
+  WINDOW.blit(SPACE, (0, 0))
+  pygame.draw.rect(WINDOW, BLACK, BORDER_CENTER)
 
-  VENTANA.blit(ESPACIO, (0, 0))
-  pygame.draw.rect(VENTANA, NEGRO, BORDE_CENTRO)
+  WINDOW.blit(YELLOW_SHIP, (yellowRectangle.x, yellowRectangle.y))
+  WINDOW.blit(RED_SHIP, (redRectangle.x, redRectangle.y))
 
-  VENTANA.blit(NAVE_AMARILLA, (rectangulo_amarillo.x, rectangulo_amarillo.y))
-  VENTANA.blit(NAVE_ROJA, (rectangulo_rojo.x, rectangulo_rojo.y))
+  redShipLiveText = FONT_LIVE.render("Vidas: " + str(redShipLive), 1, WHITE)
+  yellowShipLiveText = FONT_LIVE.render("Vidas: " +str(yellowShipLive), 1, WHITE)
 
-  vidas_nave_roja_text = FUENTE_VIDAS.render("Vidas: " + str(vidas_nave_roja), 1, BLANCO)
-  vidas_nave_amarilla_text = FUENTE_VIDAS.render("Vidas: " +str(vidas_nave_amarilla), 1, BLANCO)
+  WINDOW.blit(redShipLiveText, (WIDTH - redShipLiveText.get_width() - 10, 10))
+  WINDOW.blit(yellowShipLiveText, (10, 10))
 
-  VENTANA.blit(vidas_nave_roja_text, (ANCHO - vidas_nave_roja_text.get_width() - 10, 10))
-  VENTANA.blit(vidas_nave_amarilla_text, (10, 10))
+  for bullet in redBullets:
 
-  for bala in balas_rojas:
+    pygame.draw.rect(WINDOW, RED, bullet)
 
-    pygame.draw.rect(VENTANA, ROJO, bala)
+  for bullet in yellowBullets:
 
-  for bala in balas_amarillas:
-
-    pygame.draw.rect(VENTANA, AMARILLO, bala)
+    pygame.draw.rect(WINDOW, YELLOW, bullet)
 
   pygame.display.update()
 
 
-#   Función para controlar el movimiento de la nave amarilla.
+# Función para controlar el movimiento de la nave amarilla.
 
-def movimiento_nave_amarilla (teclas_pulsadas, rectangulo_amarillo):
+def yellowShipMovement (pressedKeys, yellowRectangle):
 
-  #   Izquierda
+  if pressedKeys[pygame.K_a] and yellowRectangle.x - SPEED > 0:
 
-  if teclas_pulsadas[pygame.K_a] and rectangulo_amarillo.x - VELOCIDAD > 0:
+    yellowRectangle.x -= SPEED
 
-    rectangulo_amarillo.x -= VELOCIDAD
+  if pressedKeys[pygame.K_d] and yellowRectangle.x + SPEED + yellowRectangle.width < BORDER_CENTER.x:
 
-  #   Derecha
+    yellowRectangle.x += SPEED
 
-  if teclas_pulsadas[pygame.K_d] and rectangulo_amarillo.x + VELOCIDAD + rectangulo_amarillo.width < BORDE_CENTRO.x:
+  if pressedKeys[pygame.K_w] and yellowRectangle.y - SPEED > 0:
 
-    rectangulo_amarillo.x += VELOCIDAD
-
-  #   Arriba
-
-  if teclas_pulsadas[pygame.K_w] and rectangulo_amarillo.y - VELOCIDAD > 0:
-
-    rectangulo_amarillo.y -= VELOCIDAD
-
-  #   Abajo
+    yellowRectangle.y -= SPEED
   
-  if teclas_pulsadas[pygame.K_s] and rectangulo_amarillo.y + VELOCIDAD + rectangulo_amarillo.height < ALTO - 15:
+  if pressedKeys[pygame.K_s] and yellowRectangle.y + SPEED + yellowRectangle.height < HEIGHT - 15:
 
-    rectangulo_amarillo.y += VELOCIDAD
+    yellowRectangle.y += SPEED
 
 
-#   Función para controlar el movimiento de la nave roja.
+# Función para controlar el movimiento de la nave roja.
 
-def movimiento_nave_roja (teclas_pulsadas, rectangulo_rojo):
+def redShipMovement (pressedKeys, redRectangle):
 
-  #   Izquierda
+  if pressedKeys[pygame.K_LEFT] and redRectangle.x - SPEED > BORDER_CENTER.x + BORDER_CENTER.width:
 
-  if teclas_pulsadas[pygame.K_LEFT] and rectangulo_rojo.x - VELOCIDAD > BORDE_CENTRO.x + BORDE_CENTRO.width:
+    redRectangle.x -= SPEED
 
-    rectangulo_rojo.x -= VELOCIDAD
+  if pressedKeys[pygame.K_RIGHT] and redRectangle.x + SPEED + redRectangle.width < WIDTH:
 
-  #   Derecha
+    redRectangle.x += SPEED
 
-  if teclas_pulsadas[pygame.K_RIGHT] and rectangulo_rojo.x + VELOCIDAD + rectangulo_rojo.width < ANCHO:
+  if pressedKeys[pygame.K_UP] and redRectangle.y - SPEED > 0:
 
-    rectangulo_rojo.x += VELOCIDAD
-
-  #   Arriba
-
-  if teclas_pulsadas[pygame.K_UP] and rectangulo_rojo.y - VELOCIDAD > 0:
-
-    rectangulo_rojo.y -= VELOCIDAD
-
-  #   Abajo
+    redRectangle.y -= SPEED
   
-  if teclas_pulsadas[pygame.K_DOWN] and rectangulo_rojo.y + VELOCIDAD + rectangulo_rojo.height < ALTO - 15:
+  if pressedKeys[pygame.K_DOWN] and redRectangle.y + SPEED + redRectangle.height < HEIGHT - 15:
 
-    rectangulo_rojo.y += VELOCIDAD
+    redRectangle.y += SPEED
 
 
-#   Función para el movimiento de las balas. Comprueba si las balas colisionan con el rectángulo del oponente o si se sale del mapa. En cualquiera de los casos se elimina la bala y se llama al evento de colisiones (event.post(pygame.event.Event)).
+# Función para el movimiento de las balas y detectar colisiones. 
 
-def movimiento_balas(balas_rojas, balas_amarillas, rectangulo_rojo, rectangulo_amarillo):
+def bulletsMovement(redBullets, yellowBullets, redRectangle, yellowRectangle):
 
-  #   Balas de la nave amarilla.
+  # Balas de la nave amarilla.
 
-  for bala in balas_amarillas:
+  for bullet in yellowBullets:
 
-    bala.x -= VELOCIDAD_BALAS
+    bullet.x -= SPEED_BULLETS
 
-    if rectangulo_rojo.colliderect(bala):
+    if redRectangle.colliderect(bullet):
 
-      balas_amarillas.remove(bala)
-      pygame.event.post(pygame.event.Event(CHOQUE_NAVE_ROJA))
+      yellowBullets.remove(bullet)
+      pygame.event.post(pygame.event.Event(RED_SHIP_COLLISION))
 
-    elif bala.x < 0:
+    elif bullet.x < 0:
 
-      balas_amarillas.remove(bala)
+      yellowBullets.remove(bullet)
 
-  #   Balas de la nave roja.
+  # Balas de la nave roja.
 
-  for bala in balas_rojas:
+  for bullet in redBullets:
 
-    bala.x += VELOCIDAD_BALAS
+    bullet.x += SPEED_BULLETS
 
-    if rectangulo_amarillo.colliderect(bala):
+    if yellowRectangle.colliderect(bullet):
 
-      balas_rojas.remove(bala)
-      pygame.event.post(pygame.event.Event(CHOQUE_NAVE_AMARILLA))
+      redBullets.remove(bullet)
+      pygame.event.post(pygame.event.Event(YELLOW_SHIP_COLLISION))
       
-    elif bala.x > ANCHO:
+    elif bullet.x > WIDTH:
 
-      balas_rojas.remove(bala)
+      redBullets.remove(bullet)
 
 
-#   Función para mostrar un texto felicitando al ganador.
+# Función para mostrar un texto felicitando al ganador.
 
-def mostrar_ganador(texto):
+def showWinner(text):
 
-  mostrar_texto = FUENTE_GANADOR.render(texto, 1, BLANCO)
-  VENTANA.blit(mostrar_texto, (ANCHO / 2 - mostrar_texto.get_width() / 2, ALTO / 2 - mostrar_texto.get_height() / 2))
+  showText = FONT_WINNER.render(text, 1, WHITE)
+  WINDOW.blit(showText, (WIDTH / 2 - showText.get_width() / 2, HEIGHT / 2 - showText.get_height() / 2))
 
   pygame.display.update()
   pygame.time.delay(5000)
 
 
-#   Función principal.
+# Función principal.
 
 def main():
 
-  #   Rectángulos que representan las naves (rect)
+  # Rectángulos que representan las naves (rect)
 
-  rectangulo_rojo = pygame.Rect(700,300, NAVE_ANCHO, NAVE_ALTO)
-  rectangulo_amarillo = pygame.Rect(100,300, NAVE_ANCHO, NAVE_ALTO)
+  redRectangle = pygame.Rect(700,300, SHIP_WIDTH, SHIP_HEIGHT)
+  yellowRectangle = pygame.Rect(100,300, SHIP_WIDTH, SHIP_HEIGHT)
 
-  #   Balas que aún están en el mapa. Las que colisionan con la otra nave o se salen del mapa se eliminan de la lista.
+  # Balas que aún están en el mapa. Las que colisionan con la otra nave o se salen del mapa se eliminan de la lista.
 
-  balas_amarillas = []
-  balas_rojas = []
+  yellowBullets = []
+  redBullets = []
 
-  #   Vidas.
+  # Vidas.
 
-  vidas_nave_amarilla = 10
-  vidas_nave_roja = 10
+  yellowShipLive = 10
+  redShipLive = 10
 
-  #   Reloj (time.Clock)
+  # Reloj.
 
-  reloj = pygame.time.Clock()
+  clock = pygame.time.Clock()
 
-  #   Mientras el juego no finaliza...
+  # Bucle infinito.
 
-  en_ejecucion = True
+  running = True
 
-  while en_ejecucion:
+  while running:
 
-    #  Pasamos como parámetro FPS a la función tick para que el programa muestre 60 fotogramas por segundo.
+    clock.tick(FPS)
 
-    reloj.tick(FPS)
+    # Lista de eventos con los botones y teclas que pulsa cada jugador. 
 
-    #   Lista de eventos con los botones y teclas que pulsa cada jugador. 
+    for event in pygame.event.get():
 
-    for evento in pygame.event.get():
+      # Botón de salir
 
-      # 	Botón de salir
-
-      if evento.type == pygame.QUIT:
+      if event.type == pygame.QUIT:
         
-          en_ejecucion = False
+          running = False
           pygame.quit()
       
-      #   Botones de disparar. Se crea la bala en la posición de cada nave, se lanza y se produce el sonido de un disparo.
+      # Botones de disparar.
 
-      if evento.type == pygame.KEYDOWN:
+      if event.type == pygame.KEYDOWN:
 
-        #   Nave amarilla (control izquierda).
+        # Nave amarilla (control izquierda).
 
-        if evento.key == pygame.K_LCTRL and len(balas_amarillas) < MAX_BALAS:
+        if event.key == pygame.K_LCTRL and len(yellowBullets) < MAX_BULLETS:
 
-          bala = pygame.Rect(rectangulo_amarillo.x + rectangulo_amarillo.width,  rectangulo_amarillo.y + rectangulo_amarillo.height // 2 + 5, 10, 5)
+          bullet = pygame.Rect(yellowRectangle.x + yellowRectangle.width,  yellowRectangle.y + yellowRectangle.height // 2 + 5, 10, 5)
 
-          balas_amarillas.append(bala)
-          SONIDO_DISPARO.play()
+          yellowBullets.append(bullet)
 
-        #   Nave roja (control derecha).
+          SHOOTING_SOUND.play()
+
+        # Nave roja (control derecha).
   
-        if evento.key == pygame.K_RCTRL and len(balas_rojas) < MAX_BALAS:
+        if event.key == pygame.K_RCTRL and len(redBullets) < MAX_BULLETS:
 
-          bala = pygame.Rect(rectangulo_rojo.x + rectangulo_rojo.width,  rectangulo_rojo.y + rectangulo_rojo.height // 2 + 5, 10, 5)
+          bullet = pygame.Rect(redRectangle.x + redRectangle.width,  redRectangle.y + redRectangle.height // 2 + 5, 10, 5)
 
-          balas_rojas.append(bala)
-          SONIDO_DISPARO.play()
+          redBullets.append(bullet)
+
+          SHOOTING_SOUND.play()
       
-      #   Si se produce una colisión se resta una vida a la nave y también se produce un sonido.
+      # Si se produce una colisión se resta una vida a la nave y se reproduce un sonido.
       
-      if evento.type == CHOQUE_NAVE_AMARILLA:
+      if event.type == YELLOW_SHIP_COLLISION:
 
-        vidas_nave_roja -= 1
-        SONIDO_COLISION.play()
+        redShipLive -= 1
+        COLLISION_SOUND.play()
 
-      if evento.type == CHOQUE_NAVE_ROJA:
+      if event.type == RED_SHIP_COLLISION:
 
-        vidas_nave_amarilla -= 1
-        SONIDO_COLISION.play()   
+        yellowShipLive -= 1
+        COLLISION_SOUND.play()   
 
-    #   Comprobamos si hay un ganador
+    # Comprobar si hay un ganador.
     
-    texto_ganador = ""
+    winnerText = ""
 
-    if vidas_nave_roja <= 0:
+    if redShipLive <= 0:
 
-      texto_ganador = "Enhorabuena nave amrilla! Has ganado la partida"
+      winnerText = "Congratulations yellow ship! You have won the game"
 
-    if vidas_nave_amarilla <= 0:
+    if yellowShipLive <= 0:
 
-      texto_ganador = "Enhorabuena nave roja! Has ganado la partida"
+      winnerText = "Congratulations red ship! You have won the game"
 
-    if texto_ganador != "":
+    if winnerText != "":
 
-      mostrar_ganador(texto_ganador)
+      showWinner(winnerText)
       break
     
-    teclas_pulsadas = pygame.key.get_pressed()
+    pressedKeys = pygame.key.get_pressed()
 
-    movimiento_nave_amarilla(teclas_pulsadas, rectangulo_amarillo)
-    movimiento_nave_roja(teclas_pulsadas, rectangulo_rojo)
-    movimiento_balas(balas_amarillas, balas_rojas, rectangulo_amarillo, rectangulo_rojo) 
-    dibujar_ventana(rectangulo_rojo, rectangulo_amarillo, balas_rojas, balas_amarillas, vidas_nave_roja, vidas_nave_amarilla)
+    yellowShipMovement(pressedKeys, yellowRectangle)
+    redShipMovement(pressedKeys, redRectangle)
+    bulletsMovement(yellowBullets, redBullets, yellowRectangle, redRectangle) 
+    showWindow(redRectangle, yellowRectangle, redBullets, yellowBullets, redShipLive, yellowShipLive)
 
   main()
 
 
-  #   Comprobamos si el fichero se llama main, es decir, si este es el archivo principal.
+# Comprueba si es el archivo principal.
 
 if __name__ == "__main__":
 
   main()
-
-
-
